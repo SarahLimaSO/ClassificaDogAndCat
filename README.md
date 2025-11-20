@@ -1,88 +1,80 @@
-# Classificação Binária Neuro-Simbólica: Gatos vs. Cachorros com LTNtorch
-
-Este projeto implementa um classificador binário de imagens (Gato vs. Cachorro) utilizando uma abordagem **Neuro-Simbólica** baseada no framework **Logic Tensor Networks (LTN)**.
-
-Diferente das abordagens tradicionais de Deep Learning que minimizam o erro entre um rótulo e uma predição, este modelo aprende **maximizando a satisfação de regras lógicas** definidas em uma Base de Conhecimento.
----
-### integrantes
+# Integrantes
 * Antonio Lucas
-* Breno
-* Caio
+* Breno Augusto
+* Caio Martins
 * Lucas da Silva Moura
 * Luiz Felipe Nery Soares
 * Sarah Campos Fernandes Lima
 * Rafael Emanuel Dantas Viana
 * Victor José Nunes Kossman
+
+# Relatório de Implementação: Classificação Neuro-Simbólica com LTN (Logic Tensor Networks)
+
+## 1. Introdução e Objetivo
+Este experimento teve como objetivo aplicar **Logic Tensor Networks (LTN)**, uma abordagem de Inteligência Artificial Neuro-Simbólica, para resolver um problema clássico de classificação de imagens (Gatos *vs* Cachorros) utilizando o dataset **CIFAR-10**.
+
+Diferente das redes neurais tradicionais que aprendem minimizando o erro entre um *output* e uma *label* (rótulo) numérica explícita, este modelo aprende tentando satisfazer **axiomas lógicos** definidos numa Base de Conhecimento (Knowledge Base).
+
+## 2. Metodologia e Explicação do Código
+
+O desenvolvimento foi dividido em cinco etapas principais:
+
+### 2.1. Preparação dos Dados (Grounding)
+O dataset CIFAR-10 foi carregado e pré-processado com as seguintes etapas:
+* **Filtragem de Classes:** Foram mantidas apenas as classes "Gato" (índice 3) e "Cachorro" (índice 5).
+* **Separação Lógica:** Em vez de usar rótulos `0` ou `1` para treino supervisionado padrão, os dados foram separados em dois grupos de tensores: `cats_data` e `dogs_data`.
+* **Limitação:** Para fins de demonstração rápida, o dataset foi limitado a 500 amostras por classe.
+
+### 2.2. O Predicado Neural (Modelo)
+Foi definida uma Rede Neural Convolucional (CNN) simples (`SimpleCNN`), atuando como um **Predicado Unário** $Dog(x)$.
+* **Entrada:** Uma imagem $x$ (3 canais, 32x32 pixels).
+* **Saída:** Um valor real no intervalo $[0, 1]$ (garantido pela função de ativação *Sigmoid*).
+* **Semântica:** O valor de saída representa o **grau de verdade** da afirmação "x é um cachorro".
+
+### 2.3. Lógica Fuzzy e Conectivos
+Utilizou-se a biblioteca `ltn` para definir os operadores da lógica difusa (Fuzzy Logic):
+* **Not:** Negação padrão (para inverter o valor de verdade).
+* **Forall:** Quantificador universal ("Para todo...").
+* **SatAgg:** Agregador de satisfação, que calcula o quão bem a rede está obedecendo às regras lógicas como um todo.
+
+### 2.4. Base de Conhecimento (Axiomas)
+O aprendizado foi guiado por dois axiomas fundamentais durante o loop de treinamento.
+
+1.  **Axioma Positivo:** $\forall x \in Dogs: Dog(x)$
+    * *Significado:* Para toda imagem $x$ pertencente ao grupo de cachorros (variável `dogs_data`), o predicado deve retornar Verdadeiro (próximo de 1.0).
+2.  **Axioma Negativo:** $\forall x \in Cats: \neg Dog(x)$
+    * *Significado:* Para toda imagem $x$ pertencente ao grupo de gatos (variável `cats_data`), o predicado deve retornar Falso (ou seja, NÃO é um cachorro, valor próximo de 0.0).
+
+### 2.5. Otimização
+A função de perda (*Loss*) foi definida como $1 - \text{Satisfação}$. O otimizador *Adam* ajustou os pesos da CNN para maximizar a satisfação desses dois axiomas simultaneamente.
+
 ---
-## 🧠 O Conceito: Logic Tensor Networks (LTN)
 
-O LTN integra o aprendizado profundo (Redes Neurais) com o raciocínio lógico (Lógica de Primeira Ordem Fuzzy). O processo se baseia em três pilares principais:
+## 3. Análise dos Resultados
 
-1.  **Lógica Real (Real Logic):** Uma linguagem onde os símbolos lógicos são interpretados como tensores (dados) e funções diferenciáveis (redes neurais).
-2.  **Grounding (Aterramento/Ancoragem):** O mapeamento dos dados reais para os símbolos lógicos. [cite_start]Por exemplo, conectar um conjunto de imagens à variável lógica $x$.
-3.  **Aprendizado via Satisfação:** O treinamento busca ajustar os pesos da rede neural para que as fórmulas lógicas da base de conhecimento sejam verdadeiras (valor de verdade próximo de 1).
+Os logs de treinamento mostram a evolução da capacidade do modelo em satisfazer as regras lógicas.
 
-## 📋 O Problema e a Modelagem Lógica
+### 3.1. Evolução do Treinamento
+* **Início (Época 0):**
+    * `Loss: 0.4985` | `Satisfação: 0.5015`
+    * **Análise:** O modelo começou com um desempenho equivalente a um "chute aleatório". A satisfação próxima de 0.5 indica que a rede não sabia distinguir as classes, atribuindo valores intermediários ou errados às imagens.
+* **Meio (Época 20):**
+    * `Loss: 0.2235` | `Satisfação: 0.7765`
+    * **Análise:** Houve uma queda rápida na perda. O modelo começou a entender as características visuais que diferenciam as duas classes.
+* **Final (Época 45):**
+    * `Loss: 0.1314` | `Satisfação: 0.8686`
+    * **Análise:** O modelo convergiu com uma satisfação alta (~87%). Isso significa que, na grande maioria dos casos, ele consegue afirmar corretamente que cães são cães e gatos não são cães.
 
-**Objetivo:** Classificar corretamente se uma imagem é de um **Cachorro** ou de um **Gato** usando o dataset CIFAR-10.
+### 3.2. Validação Final (Teste de Amostra)
+Ao final, o modelo treinado foi submetido a um teste com imagens específicas (não vistas no cálculo do gradiente daquele passo):
 
-### A Base de Conhecimento ($\mathcal{K}$)
+| Imagem de Entrada | Predicado Testado | Valor Predito | Valor Ideal | Conclusão |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cachorro** | $Dog(x)$ | **0.9687** | $> 0.9$ | **Correto** (Alta confiança) |
+| **Gato** | $Dog(x)$ | **0.0260** | $< 0.1$ | **Correto** (Alta confiança na negação) |
 
-Definimos um predicado $Dog(x)$ que representa uma Rede Neural (CNN).Esta rede recebe uma imagem $x$ e retorna a probabilidade (grau de verdade) de ser um cachorro.
+O teste valida que o predicado $Dog(x)$ aprendeu corretamente a semântica desejada: ele retorna valores altos para a classe positiva e valores muito baixos para a classe negativa.
 
-O modelo é treinado para satisfazer dois axiomas lógicos fundamentais:
+## 4. Conclusão
 
-1.  **Axioma Positivo:** "Para toda imagem de cachorro ($x_{dog}$), o predicado $Dog$ deve ser verdadeiro."
-    $$\forall x_{dog} (Dog(x_{dog}))$$
-
-2.  **Axioma Negativo:** "Para toda imagem de gato ($x_{cat}$), o predicado $Dog$ **NÃO** deve ser verdadeiro."
-    $$\forall x_{cat} (\neg Dog(x_{cat}))$$
-
-### Função de Perda (Loss)
-
-A função de perda não compara rótulos diretamente. Ela é derivada da satisfação agregada da base de conhecimento ($SatAgg$):
-
-$$\mathcal{L} = 1 - SatAgg(\mathcal{K})$$
-
-O otimizador trabalha para minimizar essa perda, o que equivale a maximizar a verdade das regras lógicas.
-
-## 🛠️ Arquitetura e Implementação
-
-[cite_start]O código está estruturado nas seguintes etapas, conforme proposto na documentação do LTNtorch[cite: 19, 189]:
-
-### 1. Preparação dos Dados
-* **Dataset:** CIFAR-10.
-* **Filtragem:** Seleciona-se apenas as classes índice 3 (Gatos) e 5 (Cachorros).
-* **Normalização:** Imagens convertidas para tensores normalizados.
-* **Separação:** Os dados são divididos em dois grupos (`cats_data` e `dogs_data`) para permitir o *grounding* correto das variáveis lógicas.
-
-### 2. O Predicado (Rede Neural)
-Uma **CNN Simples** é utilizada como a "inteligência" por trás do predicado $Dog$.
-* **Entrada:** Imagens 32x32 pixels (3 canais).
-* **Estrutura:** 2 camadas convolucionais + Max Pooling + 3 camadas lineares.
-* **Saída:** Um único neurônio com ativação **Sigmoid**, garantindo um valor de verdade no intervalo fuzzy $[0, 1]$.
-
-### 3. Operadores Fuzzy
-O LTN substitui operadores booleanos por operadores difusos diferenciáveis:
-* **Conectivo NOT ($\neg$):** Negação padrão ($1 - x$).
-* **Quantificador FORALL ($\forall$):** Agregador baseado em erro médio (*p-mean error*).
-
-### 4. Loop de Treinamento
-A cada época:
-1.  Amostra-se um batch de cães e um de gatos.
-2.  **Grounding:** Cria-se variáveis LTN (`var_dog`, `var_cat`) associadas às imagens.
-3. **Avaliação:** As fórmulas $\forall x_{dog} Dog(x)$ e $\forall x_{cat} \neg Dog(x)$ são calculadas.
-4. **Backpropagation:** O gradiente flui através da estrutura lógica até os pesos da CNN para maximizar a satisfação.
-
-## 🚀 Como Executar
-
-### Pré-requisitos
-
-```bash
-pip install torch torchvision ltntorch matplotlib numpy
-```
-### Exemplo
-```python
-# Exemplo de saída esperada após o treino:
-# Predicado Dog(imagem_cachorro) = 0.9991 (Esperado: ~1.0)
-# Predicado Dog(imagem_gato)     = 0.0277 (Esperado: ~0.0)
+O experimento demonstrou com sucesso a aplicação de Redes Neurais dentro de um arcabouço lógico (LTN). O modelo não apenas classificou as imagens, mas "aprendeu a lógica" de que o conceito de Cão é oposto ao conceito de Gato dentro deste universo fechado. A convergência da satisfação para ~0.87 e os testes pontuais confirmam a eficácia da abordagem neuro-simbólica para este problema de visão computacional.
