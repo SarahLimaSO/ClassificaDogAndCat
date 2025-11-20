@@ -1,7 +1,7 @@
 # Integrantes
-* Antonio Lucas
-* Breno Augusto
-* Caio Martins
+* Antonio Lucas de Melo Barbosa Mendes Rodrigues
+* Breno Augusto Pinheiro Rodrigues da Silva
+* Caio da Silva Martins
 * Lucas da Silva Moura
 * Luiz Felipe Nery Soares
 * Sarah Campos Fernandes Lima
